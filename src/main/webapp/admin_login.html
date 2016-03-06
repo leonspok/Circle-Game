@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Admin Login</title>
+    <script src="requests.js"></script>
+    <script>
+    window.onload = function() {
+        var button = document.getElementById("login");
+        button.onclick = function() {
+            var username = document.getElementById("username");
+            var password = document.getElementById("password");
+            button.disabled = true;
+            sendRequest("/admin/api/login", "POST", "username="+encodeURIComponent(username.value)+"&password="+encodeURI(password.value), function(responseObject) {
+                document.location.href = "/admin.html";
+                button.disabled = false;
+            }, function() {
+                alert("Error!");
+                button.disabled = false;
+            });
+        };
+    };
+    </script>
+    <style>
+        html {
+            font-family: "Open Sans", Helvetica, Arial, serif;
+            font-size: 13pt;
+        }
+
+        body {
+            max-width: 800px;
+            margin-left: auto;
+            margin-right: auto;
+            padding: 10px;
+        }
+    </style>
+</head>
+<body>
+<div id="login_form">
+    <p>
+        Имя пользователя:<br>
+        <input type="text" id="username" placeholder="username"><br>
+        Пароль:<br>
+        <input type="password" id="password" placeholder="password"><br>
+    </p>
+    <p>
+        <button id="login">Войти</button>
+    </p>
+</div>
+</body>
+</html>

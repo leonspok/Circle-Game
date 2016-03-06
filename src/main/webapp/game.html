@@ -1,0 +1,198 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta content='width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=0' name='viewport' />
+    <title>Игра "Круг"</title>
+    <script src="requests.js"></script>
+    <script src="js.cookie.js"></script>
+    <script>
+        function setStatus(status) {
+            console.log(status);
+            if (status == "discussion") {
+                document.getElementById("status").textContent = "Обсуждение";
+                document.getElementById("no-connection").style.display = "none";
+                document.getElementById("voting").style.display = "none";
+            } else if (status == "voting") {
+                document.getElementById("status").textContent = "Голосование";
+                document.getElementById("no-connection").style.display = "none";
+                document.getElementById("voting").style.display = "block";
+            } else if (status == "voted") {
+                document.getElementById("status").textContent = "Ваш голос сохранен";
+                document.getElementById("no-connection").style.display = "none";
+                document.getElementById("voting").style.display = "none";
+            } else if (status == "finished") {
+                document.getElementById("status").textContent = "Игра окончена";
+                document.getElementById("no-connection").style.display = "none";
+                document.getElementById("voting").style.display = "none";
+            } else if (status == "killed") {
+                document.getElementById("status").textContent = "Вы убиты";
+                document.getElementById("no-connection").style.display = "none";
+                document.getElementById("voting").style.display = "none";
+            } else if (status == "no_connection") {
+                document.getElementById("status").textContent = "Соединение потеряно";
+                document.getElementById("no-connection").style.display = "block";
+                document.getElementById("voting").style.display = "none";
+            }
+        }
+
+        function reconnect() {
+            var socket = new WebSocket("ws://"+location.host+"/game_socket");
+            socket.onopen = function() {
+                var token = Cookies.get("player_token");
+                var obj = {
+                    "action": "auth",
+                    "token": token
+                };
+                socket.send(JSON.stringify(obj));
+                console.log(obj);
+                console.log("connection opened");
+            };
+            socket.onclose = function() {
+                setStatus("no_connection");
+            };
+            socket.onmessage = function(event) {
+                console.log("Received", event.data);
+                var str = event.data;
+                try {
+                    var object = JSON.parse(event.data);
+                    if (object.action == "set_status") {
+                        var status = object.content.status;
+                        setStatus(status);
+                        updateVotingList(object.content);
+                    }
+                } catch(e) {
+                    console.log(e);
+                }
+            };
+        }
+
+        function getRandomInt(min, max) {
+            return Math.floor(Math.random() * (max - min + 1)) + min;
+        }
+
+        function updateVotingList(info) {
+            var list = document.getElementById("voting-list");
+            list.innerHTML = "";
+            var players = info.players;
+            var duration = info.duration;
+            document.getElementById("voting-duration").textContent = duration;
+            var acceptEmptyVote = info["accept_empty_vote"];
+            var indexToInsertEmptyVote = getRandomInt(0, players.length-1);
+            for (var i = 0; i < players.length; i++) {
+                var player = players[i];
+                var li = document.createElement("li");
+                list.appendChild(li);
+                var a = document.createElement("a");
+                li.appendChild(a);
+                a.textContent = player.name+" (#"+player.number+")";
+                a.setAttribute("data-user-id", player.uid);
+                a.setAttribute("data-user-name", player.name);
+                a.setAttribute("data-user-number", player.number);
+                a.onclick = function() {
+                    var uid = this.getAttribute("data-user-id");
+                    var name = this.getAttribute("data-user-name");
+                    var number = this.getAttribute("data-user-number");
+                    voteForUser(uid, name, number);
+                };
+
+                if (acceptEmptyVote && i == indexToInsertEmptyVote) {
+                    var li = document.createElement("li");
+                    list.appendChild(li);
+                    var a = document.createElement("a");
+                    li.appendChild(a);
+                    a.textContent = "Ни за кого не голосовать";
+                    a.onclick = function() {
+                        sendEmptyVote();
+                    }
+                }
+            }
+
+        }
+
+        function voteForUser(uid, name, number) {
+            var result = confirm("Вы подтверждаете свой голос против игрока "+name+" (#"+number+")?");
+            if (result) {
+                sendRequest("/players/api/vote", "POST", "user_id="+uid, function(responseObject) {
+                }, function() {
+                });
+            }
+        }
+
+        function sendEmptyVote() {
+            var result = confirm("Вы подтверждаете, что ни за кого не голосуете в этом раунде?");
+            if (result) {
+                sendRequest("/players/api/empty_vote", "POST", "", function(responseObject) {
+                }, function() {
+                });
+            }
+        }
+
+        window.onload = function() {
+            reconnect();
+
+            document.getElementById("reconnect").onclick = function() {
+                reconnect();
+            };
+        }
+
+    </script>
+    <style>
+        html {
+            font-family: "Open Sans", Helvetica, Arial, serif;
+            font-size: 13pt;
+        }
+
+        body {
+            max-width: 800px;
+            margin-left: auto;
+            margin-right: auto;
+            padding: 10px;
+        }
+
+        table {
+            border-spacing: 0;
+            border-collapse: collapse;
+            width: 100%;
+            text-align: center;
+        }
+
+        td {
+            border: 1px solid #dadada;
+        }
+
+        ul {
+            list-style: none;
+            padding: 0;
+        }
+
+        ul a {
+            display: block;
+            border: 1px solid #dadada;
+            padding: 15px;
+            margin: 10px;
+            text-align: center;
+        }
+
+        li {
+            font-weight: lighter;
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <h1 id="status">Обсуждение</h1>
+    </header>
+    <div id="content">
+        <div id="no-connection">
+            <p>Соединение с сервером потеряно:</p>
+            <p><button id="reconnect">Попробовать снова</button></p>
+        </div>
+        <div id="voting">
+            <p>У вас есть <span id="voting-duration"></span> секунд на голосование</p>
+            <ul id="voting-list">
+            </ul>
+        </div>
+    </div>
+</body>
+</html>

@@ -1,0 +1,384 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Admin page</title>
+    <script src="requests.js"></script>
+    <script>
+        function setStatus(status) {
+            console.log(status);
+            if (status == "no_game") {
+                document.getElementById("status").textContent = "Игра не создана";
+                document.getElementById("no-game").style.display = "block";
+                document.getElementById("restart-game").style.display = "none";
+                document.getElementById("game").style.display = "none";
+                document.getElementById("no-connection").style.display = "none";
+            } else if (status == "registration") {
+                document.getElementById("status").textContent = "Регистрация";
+                document.getElementById("no-game").style.display = "none";
+                document.getElementById("restart-game").style.display = "none";
+                document.getElementById("no-connection").style.display = "none";
+                document.getElementById("game").style.display = "block";
+                document.getElementById("game_registration").style.display = "block";
+                document.getElementById("voting-params").style.display = "none";
+                document.getElementById("voting-results").style.display = "none";
+                document.getElementById("users-list").style.display = "block";
+            } else if (status == "discussion") {
+                document.getElementById("status").textContent = "Обсуждение";
+                document.getElementById("no-game").style.display = "none";
+                document.getElementById("restart-game").style.display = "none";
+                document.getElementById("no-connection").style.display = "none";
+                document.getElementById("game").style.display = "block";
+                document.getElementById("game_registration").style.display = "none";
+                document.getElementById("voting-params").style.display = "block";
+                document.getElementById("voting-results").style.display = "none";
+                document.getElementById("users-list").style.display = "block";
+            } else if (status == "voting") {
+                document.getElementById("status").textContent = "Голосование";
+                document.getElementById("no-game").style.display = "none";
+                document.getElementById("restart-game").style.display = "none";
+                document.getElementById("no-connection").style.display = "none";
+                document.getElementById("game").style.display = "block";
+                document.getElementById("game_registration").style.display = "none";
+                document.getElementById("voting-params").style.display = "none";
+                document.getElementById("voting-results").style.display = "block";
+                document.getElementById("users-list").style.display = "block";
+            } else if (status == "voted") {
+                document.getElementById("status").textContent = "Голосование окончено";
+                document.getElementById("no-game").style.display = "none";
+                document.getElementById("restart-game").style.display = "block";
+                document.getElementById("restart-game").style.display = "none";
+                document.getElementById("no-connection").style.display = "none";
+                document.getElementById("game").style.display = "block";
+                document.getElementById("game_registration").style.display = "none";
+                document.getElementById("voting-params").style.display = "none";
+                document.getElementById("voting-results").style.display = "block";
+                document.getElementById("users-list").style.display = "block";
+            } else if (status == "finished") {
+                document.getElementById("status").textContent = "Игра окончена";
+                document.getElementById("no-game").style.display = "none";
+                document.getElementById("restart-game").style.display = "block";
+                document.getElementById("no-connection").style.display = "none";
+                document.getElementById("game").style.display = "block";
+                document.getElementById("game_registration").style.display = "none";
+                document.getElementById("voting-params").style.display = "none";
+                document.getElementById("voting-results").style.display = "none";
+                document.getElementById("users-list").style.display = "block";
+            } else if (status == "no_connection") {
+                document.getElementById("status").textContent = "Соединение потеряно";
+                document.getElementById("no-game").style.display = "none";
+                document.getElementById("restart-game").style.display = "none";
+                document.getElementById("no-connection").style.display = "block";
+                document.getElementById("game").style.display = "none";
+                document.getElementById("game_registration").style.display = "none";
+                document.getElementById("voting-params").style.display = "none";
+                document.getElementById("voting-results").style.display = "none";
+                document.getElementById("users-list").style.display = "none";
+            }
+        }
+
+        function reconnect() {
+            var socket = new WebSocket("ws://"+location.host+"/admin_socket");
+            socket.onopen = function() {
+                console.log("connection opened");
+            };
+            socket.onclose = function() {
+                setStatus("no_connection");
+            };
+            socket.onmessage = function(event) {
+                console.log("Received", event.data);
+                var str = event.data;
+                try {
+                    var object = JSON.parse(event.data);
+                    if (object.action == "update_voting_results") {
+                        var content = object.content;
+                        updateVotingResults(content);
+                    } else if (object.action == "display_final_voting_results") {
+                        var content = object.content;
+                        showFinalVotingResults(content);
+                    } else if (object.action == "update_players_list") {
+                        var content = object.content;
+                        updateUsersList(content);
+                    } else if (object.action == "set_status") {
+                        var status = object.content.status;
+                        setStatus(status)
+                    }
+                } catch(e) {
+                    console.log(e);
+                }
+            };
+        }
+
+        function createNewGame() {
+            var button = document.getElementById("create-new-game");
+            button.disabled = true;
+            sendRequest("/admin/api/game/start", "POST", "", function(responseObject) {
+                button.disabled = false;
+            }, function() {
+                button.disabled = false;
+            });
+        }
+
+        function loadPreviousGame() {
+            var button = document.getElementById("load-previous-game");
+            button.disabled = true;
+            sendRequest("/admin/api/game/load", "POST", "", function(responseObject) {
+                button.disabled = false;
+            }, function() {
+                button.disabled = false;
+            });
+        }
+
+        function stopRegistration() {
+            var button = document.getElementById("stop-registration");
+            button.disabled = true;
+            sendRequest("/admin/api/game/stop_registration", "POST", "", function(responseObject) {
+                button.disabled = false;
+            }, function() {
+                button.disabled = false;
+            });
+        }
+
+        function changeVotingDuration() {
+            var slider = document.getElementById("voting-duration-slider");
+            document.getElementById("voting-duration").textContent = slider.value;
+        }
+
+        function startNewVoting() {
+            var slider = document.getElementById("voting-duration-slider");
+            var duration = parseInt(slider.value);
+            var button = document.getElementById("start-voting");
+            button.disabled = true;
+            sendRequest("/admin/api/voting/start", "POST", "duration="+duration, function(responseObject) {
+                button.disabled = false;
+            }, function() {
+                button.disabled = false;
+            });
+        }
+
+        function updateVotingResults(info) {
+            var table = document.getElementById("voting-results-table");
+            table.innerHTML = "";
+            var maxVotes = info["max_votes"];
+            var totalVotes = 0;
+            var results = info.results;
+            for (var i = 0; i < results.length; i++) {
+                var result = results[i];
+                var tr = document.createElement("tr");
+                table.appendChild(tr);
+                var numberCell = document.createElement("td");
+                numberCell.className = "playerNumber";
+                tr.appendChild(numberCell);
+                var nameCell = document.createElement("td");
+                nameCell.className = "playerName";
+                tr.appendChild(nameCell);
+                var progressCell = document.createElement("td");
+                tr.appendChild(progressCell);
+                var progress = document.createElement("progress");
+                progress.max = maxVotes;
+                progress.value = result.votes;
+                progressCell.appendChild(progress);
+                totalVotes += result.votes;
+
+                if (result.type == "player") {
+                    numberCell.textContent = result.player.number;
+                    nameCell.textContent = result.player.name;
+                } else {
+                    nameCell.textContent = "Ни за кого";
+                }
+            }
+            document.getElementById("votes-remaining").textContent = (maxVotes-totalVotes);
+        }
+
+        function updateUsersList(info) {
+            var table = document.getElementById("users-table");
+            table.innerHTML = "";
+            var players = info.players;
+            for (var i = 0; i < players.length; i++) {
+                var player = players[i];
+                var tr = document.createElement("tr");
+                table.appendChild(tr);
+                if (player.alive) {
+                    tr.className = "playerAlive";
+                } else {
+                    tr.className = "playerDead";
+                }
+                var numberCell = document.createElement("td");
+                tr.appendChild(numberCell);
+                numberCell.textContent = player.number;
+                numberCell.className = "playerNumber";
+                var nameCell = document.createElement("td");
+                nameCell.className = "playerName";
+                tr.appendChild(nameCell)
+                nameCell.textContent = player.name;
+                var statusCell = document.createElement("td");
+                tr.appendChild(statusCell);
+                statusCell.textContent = player.alive? "Живой" : "Убит";
+                var killCell = document.createElement("td");
+                tr.appendChild(killCell);
+                var killButton = document.createElement("button");
+                killCell.appendChild(killButton);
+                killButton.textContent = "Убить";
+                killButton.setAttribute("data-user-id", player.uid);
+                killButton.setAttribute("data-user-name", player.name);
+                killButton.setAttribute("data-user-number", player.number);
+                killButton.onclick = function() {
+                    var uid = this.getAttribute("data-user-id");
+                    var name = this.getAttribute("data-user-name");
+                    var number = this.getAttribute("data-user-number");
+                    killUser(uid, name, number, this);
+                };
+            }
+        }
+
+        function killUser(uid, name, number, button) {
+            var result = confirm("Вы действительно хотите удалить игрока "+name+" (#"+number+")?");
+            if (result) {
+                button.disabled = true;
+                sendRequest("/admin/api/players/kill", "POST", "user_id="+uid, function(responseObject) {
+                    button.disabled = false;
+                }, function() {
+                    button.disabled = false;
+                });
+            }
+        }
+
+        function showFinalVotingResults(info) {
+            var str = "По итогам голосования должен быть убит игрок:\n";
+            str += info.killed_player.name + "(#" + info.killed_player.number +")\n\n";
+            var notVoted = info.not_voted;
+            if (notVoted.length > 0) {
+                str += "Следующие пользователи также были убиты, т.к. не участвовали в голосовании:\n";
+                for (var i = 0; i < notVoted.length; i++) {
+                    var player = notVoted[i];
+                    str += player.name + "(#" + player.number +")\n";
+                }
+            }
+            alert(str);
+            sendRequest("/admin/api/voting/complete", "POST", "", function(responseObject) {
+            }, function() {
+            });
+        }
+
+        window.onload = function() {
+            reconnect();
+
+            document.getElementById("reconnect").onclick = function() {
+                reconnect();
+            };
+            document.getElementById("create-new-game").onclick = function() {
+                createNewGame();
+            };
+            document.getElementById("start-next-game").onclick = function() {
+                createNewGame();
+            };
+            document.getElementById("load-previous-game").onclick = function() {
+                loadPreviousGame();
+            };
+            document.getElementById("stop-registration").onclick = function() {
+                stopRegistration();
+            };
+            document.getElementById("voting-duration-slider").oninput = function() {
+                changeVotingDuration();
+            };
+            document.getElementById("start-voting").onclick = function() {
+                startNewVoting();
+            };
+        }
+    </script>
+    <style>
+        html {
+            font-family: "Open Sans", Helvetica, Arial, serif;
+            font-size: 13pt;
+        }
+
+        body {
+            max-width: 800px;
+            margin-left: auto;
+            margin-right: auto;
+            padding: 10px;
+        }
+
+        #status-label {
+            color: #a0a0a0;
+        }
+
+        table {
+            border-spacing: 0;
+            border-collapse: collapse;
+            width: 100%;
+            text-align: center;
+        }
+
+        td {
+            border: 1px solid #dadada;
+            padding: 5px;
+        }
+
+        td.playerName {
+            text-align: left;
+            width: 70%;
+        }
+
+        td.playerNumber {
+            width: 20px;
+            text-align: left;
+        }
+
+        tr.playerAlive {
+            background-color: #EDFBDF;
+        }
+
+        tr.playerDead {
+            background-color: #FDCFD3;
+        }
+
+        progress {
+            width: 100%;
+        }
+
+    </style>
+</head>
+<body>
+    <header>
+        <h1><span id="status-label">Статус:</span> <span id="status">Нет игры</span></h1>
+    </header>
+    <div id="content">
+        <div id="no-connection">
+            <p>Соединение с сервером потеряно:</p>
+            <p><button id="reconnect">Попробовать снова</button></p>
+        </div>
+        <div id="no-game">
+            <p>В данный момент игра еще не создана.</p>
+            <p><button id="create-new-game">Создать новую игру</button> <button id="load-previous-game">Загрузить сохраненную игру</button></p>
+        </div>
+        <div id="restart-game">
+            <p>Хотите создать новую игру?</p>
+            <p><button id="start-next-game">Создать новую игру</button></p>
+        </div>
+        <div id="game">
+            <div id="game_registration">
+                <p>Пользователи регистрируются в игре</p>
+                <p><button id="stop-registration">Остановить регистрацию и начать игру</button></p>
+            </div>
+            <div id="voting-params">
+                <p>Запустить голосование:</p>
+                <p>
+                    Длительность:<br>
+                    <input id="voting-duration-slider" type="range" min="10" max="120"> <span id="voting-duration">60</span>
+                </p>
+                <p><button id="start-voting">Начать новое голосование</button></p>
+            </div>
+            <div id="voting-results">
+                <p>Текущие результаты голосования:</p>
+                <table id="voting-results-table"></table>
+                <p>Не проголосовало: <span id="votes-remaining">10</span></p>
+            </div>
+            <div id="users-list">
+                <p>Пользователи:</p>
+                <table id="users-table"></table>
+            </div>
+        </div>
+    </div>
+</body>
+</html>

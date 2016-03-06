@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta content='width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=0' name='viewport' />
+    <title>Login</title>
+    <script src="requests.js"></script>
+    <script>
+        window.onload = function() {
+            var button = document.getElementById("login");
+            button.onclick = function() {
+                var name = document.getElementById("name");
+                button.disabled = true;
+                sendRequest("/players/api/login", "POST", "name="+encodeURIComponent(name.value), function(responseObject) {
+                    document.location.href = "/game.html";
+                    button.disabled = false;
+                }, function() {
+                    alert("Error!");
+                    button.disabled = false;
+                });
+            };
+        };
+    </script>
+    <style>
+        html {
+            font-family: "Open Sans", Helvetica, Arial, serif;
+            font-size: 13pt;
+        }
+
+        body {
+            max-width: 800px;
+            margin-left: auto;
+            margin-right: auto;
+            padding: 10px;
+        }
+    </style>
+</head>
+<body>
+<div id="login_form">
+    <p>Приветствуем Вас в игре "Круг"! Пожалуйста, введите имя, чтобы подтвердить участие в игре.</p>
+    <p>
+        Ваше имя:<br>
+        <input type="text" id="name" placeholder="Имя"><br>
+    </p>
+    <p>
+        <button id="login">Войти</button>
+    </p>
+</div>
+</body>
+</html>
