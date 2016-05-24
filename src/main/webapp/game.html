@@ -111,7 +111,7 @@
         }
 
         function voteForUser(uid, name, number) {
-            var result = confirm("Вы подтверждаете свой голос против игрока "+name+" (#"+number+")?");
+            var result = confirm("Вы подтверждаете, что отдаете свой голос за игрока "+name+" (#"+number+")?");
             if (result) {
                 sendRequest("/players/api/vote", "POST", "user_id="+uid, function(responseObject) {
                 }, function() {

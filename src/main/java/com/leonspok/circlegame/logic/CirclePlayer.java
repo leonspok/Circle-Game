@@ -14,8 +14,8 @@ public class CirclePlayer {
     public String uid;
     public String name;
     public int number;
+    public int score;
     public boolean alive;
-
 
     public static CirclePlayer createNew(String name, int number) {
         CirclePlayer player = new CirclePlayer();
@@ -23,6 +23,7 @@ public class CirclePlayer {
         player.alive = true;
         player.number = number;
         player.name = name;
+        player.score = 0;
         return player;
     }
 
@@ -45,6 +46,7 @@ public class CirclePlayer {
         player.name = (String)object.get("name");
         player.alive = (Boolean)object.get("alive");
         player.number = ((Long)object.get("number")).intValue();
+        player.score = ((Long)object.get("score")).intValue();
         return player;
     }
 
@@ -54,6 +56,7 @@ public class CirclePlayer {
         object.put("name", this.name);
         object.put("alive", this.alive);
         object.put("number", this.number);
+        object.put("score", this.score);
         return object;
     }
 

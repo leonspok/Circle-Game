@@ -214,6 +214,9 @@
                 var statusCell = document.createElement("td");
                 tr.appendChild(statusCell);
                 statusCell.textContent = player.alive? "Живой" : "Убит";
+                var scoreCell = document.createElement("td");
+                tr.appendChild(scoreCell);
+                scoreCell.textContent = player.score;
                 var killCell = document.createElement("td");
                 tr.appendChild(killCell);
                 var killButton = document.createElement("button");

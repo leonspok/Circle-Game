@@ -55,27 +55,28 @@ public class CirclePoll {
     public void completePoll() {
         this.acceptVotes = false;
 
-        int maxResult = 0;
+        int minResult = Integer.MAX_VALUE;
         for (CirclePlayer player : this.results.keySet()) {
             int result = this.results.get(player);
-            if (result > maxResult) {
-                maxResult = result;
+            player.score += result;
+            if (result < minResult) {
+                minResult = result;
             }
         }
 
-        List<CirclePlayer> usersWithMaxResult = new LinkedList<CirclePlayer>();
+        List<CirclePlayer> usersWithMinResult = new LinkedList<CirclePlayer>();
         for (CirclePlayer player : this.results.keySet()) {
             int result = this.results.get(player);
-            if (result >= maxResult) {
-                usersWithMaxResult.add(player);
+            if (result <= minResult) {
+                usersWithMinResult.add(player);
             }
         }
 
-        if (usersWithMaxResult.size() == 1) {
-            this.killedUser = usersWithMaxResult.get(0);
-        } else if (usersWithMaxResult.size() > 1) {
-            int index = Math.abs(random.nextInt())%usersWithMaxResult.size();
-            this.killedUser = usersWithMaxResult.get(index);
+        if (usersWithMinResult.size() == 1) {
+            this.killedUser = usersWithMinResult.get(0);
+        } else if (usersWithMinResult.size() > 1) {
+            int index = Math.abs(random.nextInt())%usersWithMinResult.size();
+            this.killedUser = usersWithMinResult.get(index);
         }
     }
 
